@@ -1,0 +1,4 @@
+input=$1
+output=$2
+
+bzcat $input | grep -E '\[White |\[Black |\[Result |\[UTCDate |\[UTCTime |\[WhiteElo |\[BlackElo |\[TimeControl |\[WhiteRatingDiff |\[BlackRatingDiff |^$' > $output
