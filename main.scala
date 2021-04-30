@@ -6,7 +6,8 @@ object Main extends App {
     case class Game(
         white: String,
         black: String,
-        weektime: Long,
+        weekday: Int,
+        timebin: Int,
         whiteelo: Int,
         blackelo: Int,
         whiteratingdiff: Int,
@@ -14,7 +15,24 @@ object Main extends App {
         timecontrol: Int
     )
 
-    val test = Source.fromFile("test").mkString.split("\n\n\n")
+    case class GameList(games: List[Game])
+    case class PartGame(lines: List[String])
+    case class Aggregator(gamelist: GameList, partgame: PartGame)
+
+    val test = Source.fromFile("test").getLines.toList
+    //val data = Source.fromFile("2016-02_reduced").mkString.split("\n\n\n")
+
+    test.foldLeft(Aggregator(GameList(Nil), PartGame(Nil))) {
+        (a, s) => {
+            s match {
+                case "\n" => parseGame(a.partgame) match {
+                    case Some(game) => Aggregator(a.gamelist :: game, PartGame(Nil))
+                    case _ => Aggregator(a.gamelist, PartGame(Nil))
+                }
+                case _ => Aggregator(a.gamelist, a.partgame :: s)
+            }
+        }
+    }
 
     def timeConvert(control: String): Int =
         control.split("\\+") match {
@@ -22,13 +40,15 @@ object Main extends App {
             case _ => 0
         }
 
-    def dayConvert(date: String, time: String): Long =
-        ((DateTime.parse(time, DateTimeFormat.forPattern("HH:mm:ss").withZoneUTC()).getMillis + DateTime.parse(date, DateTimeFormat.forPattern("yyyy.MM.dd").withZoneUTC()).getMillis) / 1000) % 604800 //60*60*24*7 seconds in a week
+    def getWeekday(date: String): Int =
+        DateTime.parse(date, DateTimeFormat.forPattern("yyyy.MM.dd").withZoneUTC()).getDayOfWeek()
 
-    def parseGame(gamestring: String): Option[Game] = {
-        val lines: Array[String] = gamestring.split("\n")
+    def getTimeBin(time: String): Int =
+        DateTime.parse(time, DateTimeFormat.forPattern("HH:mm:ss").withZoneUTC()).getHourOfDay()
+
+    def parseGame(gamestrings: PartGame): Option[Game] = {
         val t: Seq[String] = {
-            lines map {
+            gamestrings.list map {
                 case s"""[${tagname} "${tagvalue}"]""" => tagvalue
             }
         }
@@ -36,7 +56,8 @@ object Main extends App {
             case t if t.length == 9 => 
                 Some(Game(white = t(0),
                     black = t(1),
-                    weektime = dayConvert(t(2), t(3)),
+                    weekday = getWeekday(t(2)),
+                    timebin = getTimeBin(t(3)),
                     whiteelo = t(4).toInt,
                     blackelo = t(5).toInt,
                     whiteratingdiff = t(6).toInt,
@@ -47,6 +68,8 @@ object Main extends App {
             }
     }
 
-    val games: Array[Game] = test flatMap parseGame
-    games.take(1000) map println
+    //val games: Array[Game] = test flatMap parseGame
+
+    //games distribution over a day
+    //println(games.groupBy(i=>i.timebin).mapValues(_.size).toMap)
 }
