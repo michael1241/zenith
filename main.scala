@@ -15,24 +15,24 @@ object Main extends App {
         timecontrol: Int
     )
 
-    case class GameList(games: List[Game])
-    case class PartGame(lines: List[String])
-    case class Aggregator(gamelist: GameList, partgame: PartGame)
+    case class Aggregator(gamelist: List[Game], partgame: List[String])
 
-    val test = Source.fromFile("test").getLines.toList
+    val test = Source.fromFile("test").getLines.take(108)
     //val data = Source.fromFile("2016-02_reduced").mkString.split("\n\n\n")
 
-    test.foldLeft(Aggregator(GameList(Nil), PartGame(Nil))) {
+    val output: List[Game] = test.foldLeft(Aggregator(List[Game](), List[String]())) {
         (a, s) => {
             s match {
-                case "\n" => parseGame(a.partgame) match {
-                    case Some(game) => Aggregator(a.gamelist :: game, PartGame(Nil))
-                    case _ => Aggregator(a.gamelist, PartGame(Nil))
+                case "" => parseGame(a.partgame) match {
+                    case Some(game) => Aggregator((a.gamelist :+ game), List[String]())
+                    case _ => Aggregator(a.gamelist, List[String]())
                 }
-                case _ => Aggregator(a.gamelist, a.partgame :: s)
+                case _ => Aggregator(a.gamelist, (a.partgame :+ s))
             }
         }
-    }
+    }.gamelist
+
+    println(output)
 
     def timeConvert(control: String): Int =
         control.split("\\+") match {
@@ -46,9 +46,9 @@ object Main extends App {
     def getTimeBin(time: String): Int =
         DateTime.parse(time, DateTimeFormat.forPattern("HH:mm:ss").withZoneUTC()).getHourOfDay()
 
-    def parseGame(gamestrings: PartGame): Option[Game] = {
+    def parseGame(gamestrings: List[String]): Option[Game] = {
         val t: Seq[String] = {
-            gamestrings.list map {
+            gamestrings map {
                 case s"""[${tagname} "${tagvalue}"]""" => tagvalue
             }
         }
