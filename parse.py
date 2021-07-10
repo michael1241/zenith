@@ -2,13 +2,14 @@
 
 import chess.pgn
 import datetime
-import pickle
+import pandas as pd
+import tqdm
 
 class Game:
     def __init__(self, headers):
         self.white = headers.get('White')
         self.black = headers.get('Black')
-        self.timebin = self.getTimeBin(headers.get('UTCDate'), headers.get('UTCTime'))
+        self.day, self.hour = self.getTimeBin(headers.get('UTCDate'), headers.get('UTCTime'))
         self.whiteelo = int(headers.get('WhiteElo'))
         self.blackelo = int(headers.get('BlackElo'))
         self.whiterc = int(headers.get('WhiteRatingDiff'))
@@ -27,17 +28,24 @@ class Game:
 def Parse(f):
     games = []
     pgn = open(f)
-    while True:
-        game = chess.pgn.read_game(pgn)
-        if not game:
-            break
-        headers = game.headers
-        try:
-            g = Game(headers)
-        except:
-            continue
-        games.append(g)
-    return games
+    with tqdm.tqdm(total=5015361) as pbar:
+        while True:
+            pbar.update(n=1)
+            game = chess.pgn.read_game(pgn)
+            if not game:
+                break
+            headers = game.headers
+            try:
+                g = Game(headers)
+            except:
+                continue
+            games.append(g)
+        return games
+
+games = Parse('2016-02_reduced')
+#games = Parse('test')
+
+df = pd.DataFrame([vars(f) for f in games])
 
 with open('games', 'wb') as f:
-    pickle.dump(Parse('test'), f)
+    df.to_pickle(f)
