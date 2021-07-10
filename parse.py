@@ -23,7 +23,7 @@ class Game:
 
     def timeConvert(self, control):
         t = control.split('+')
-        return (int(t[0]) * 60) + (40 * int(t[1]))
+        return int(t[0]) + (40 * int(t[1]))
 
 def Parse(f):
     games = []
